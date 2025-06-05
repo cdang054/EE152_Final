@@ -10,15 +10,15 @@ class QRCodeScanner:
         self.min_contour_area = 100   # Minimum area for finder pattern contour
         
     def _preprocess_image(self, image):
-        # Preprocess the image for QR code detection: grayscale conversion, noise reduction, adaptive thresholding
+        # Preprocess the image for QR code detection: grayscale conversion, noise reduction, and adaptive thresholding
 
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # Histogram equalization to improve contrast
+        # Histogram equalization to improve the contrast
         equalized = cv2.equalizeHist(gray)
         
-        # Bilateral filter for noise reduction while preserving edges
+        # Bilateral filter for noise reduction while also preserving edges
         filtered = cv2.bilateralFilter(equalized, 9, 75, 75)
         
         # Adaptive thresholding to handle lighting variations
@@ -31,7 +31,7 @@ class QRCodeScanner:
         return thresh
 
     def _find_finder_patterns(self, binary_image):
-        # Detect QR code finder patterns using contour analysis: morphological operations, contour detection, hierarchy analysis
+        # Detect QR code finder patterns using contour analysis: morphological operations, contour detection, and hierarchy analysis
 
         # Morphological closing to connect pattern components
         kernel = np.ones((3, 3), np.uint8)
@@ -50,19 +50,19 @@ class QRCodeScanner:
             for i, contour in enumerate(contours):
                 # Look for contours with nested contours (finder pattern characteristic)
                 if hierarchy[i][3] != -1 and hierarchy[i][2] != -1:
-                    # Get bounding rectangle
+                    # Get the bounding rectangle
                     x, y, w, h = cv2.boundingRect(contour)
                     
                     # Skip small contours
                     if w * h < self.min_contour_area:
                         continue
                     
-                    # Calculate aspect ratio
+                    # Calculate the aspect ratio
                     aspect_ratio = float(w) / h
                     
-                    # Validate aspect ratio (should be near 1:1 for squares)
+                    # Validate the aspect ratio (should be near 1:1 for squares)
                     if 0.8 < aspect_ratio < 1.2:
-                        # Calculate area ratio (contour area vs. bounding rectangle area)
+                        # Calculate the area ratio (contour area / bounding rectangle area)
                         area = cv2.contourArea(contour)
                         rect_area = w * h
                         area_ratio = area / rect_area
@@ -71,44 +71,44 @@ class QRCodeScanner:
                         if 0.7 < area_ratio < 0.9:
                             finder_patterns.append((x, y, w, h))
         
-        return finder_patterns[:3]  # Return top 3 candidates
+        return finder_patterns[:3]  # Return top 3 
 
     def _order_points(self, pts):
-        # Order points in clockwise order: top-left, top-right, bottom-right, bottom-left
+        # Order the points clockwise: top left, top right, bottom right, bottom left
         
         rect = np.zeros((4, 2), dtype="float32")
         
-        # Top-left point will have the smallest sum
-        # Bottom-right point will have the largest sum
+        # Top left point will have the smallest sum
+        # Bottom right point will have the largest sum
         s = pts.sum(axis=1)
-        rect[0] = pts[np.argmin(s)]  # top-left
-        rect[2] = pts[np.argmax(s)]  # bottom-right
+        rect[0] = pts[np.argmin(s)]  # top left
+        rect[2] = pts[np.argmax(s)]  # bottom right
         
         # Compute the difference between points
         diff = np.diff(pts, axis=1)
-        rect[1] = pts[np.argmin(diff)]  # top-right
-        rect[3] = pts[np.argmax(diff)]  # bottom-left
+        rect[1] = pts[np.argmin(diff)]  # top right
+        rect[3] = pts[np.argmax(diff)]  # bottom left
         
         return rect
 
     def _calculate_transform(self, patterns):
-        # Calculate perspective transform using detected finder patterns
+        # Calculate transform using detected finder patterns
         
         if len(patterns) < 3:
             return None, None
         
-        # Calculate center points of each pattern
+        # Calculate the center points of each pattern
         centers = np.array([(x + w/2, y + h/2) for x, y, w, h in patterns])
         
         # Order the points
         ordered_centers = self._order_points(centers)
         
-        # Calculate fourth point (bottom-right)
+        # Calculate the fourth point (bottom-right)
         tl, tr, bl, br = ordered_centers
         br = (tr[0] + (bl[0] - tl[0]), tr[1] + (bl[1] - tl[1]))
         ordered_centers = np.array([tl, tr, br, bl], dtype="float32")
         
-        # Calculate dimensions of QR code
+        # Calculate the dimensions of the QR code
         widthA = np.linalg.norm(br - bl)
         widthB = np.linalg.norm(tr - tl)
         maxWidth = max(int(widthA), int(widthB))
@@ -117,7 +117,7 @@ class QRCodeScanner:
         heightB = np.linalg.norm(tl - bl)
         maxHeight = max(int(heightA), int(heightB))
         
-        # Destination points for perspective transform
+        # Destination points for transform
         dst = np.array([
             [0, 0],
             [maxWidth - 1, 0],
@@ -125,12 +125,12 @@ class QRCodeScanner:
             [0, maxHeight - 1]
         ], dtype="float32")
         
-        # Calculate perspective transform matrix
+        # Calculate the transform matrix
         M = cv2.getPerspectiveTransform(ordered_centers, dst)
         return M, (maxWidth, maxHeight)
 
     def _detect_and_decode(self, image):
-        # Use predefined functions here to detect QR code and also decode
+        # Use predefined functions here to detect QR code and also decode if found
 
         # Create our own debug image
         debug_image = image.copy()
@@ -148,11 +148,11 @@ class QRCodeScanner:
         decoded_text, points, _ = detector.detectAndDecode(image)
         
         if points is not None:
-            # Draw bounding box around QR code
+            # Draw bounding box around the QR code
             points = points.astype(np.int32)
             cv2.polylines(debug_image, [points], True, (0, 0, 255), 2)
             
-            # Draw decoded text on image
+            # Draw decoded text on the image
             if decoded_text:
                 cv2.putText(debug_image, decoded_text, (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
@@ -160,7 +160,7 @@ class QRCodeScanner:
         return decoded_text, debug_image
 
     def scan(self, image):
-        # Main scanning pipeline - returns decoded text and debug image
+        # Main scanning pipeline returns decoded text and debug image
      
         # Create a working copy for debugging
         debug_image = image.copy()
@@ -188,19 +188,19 @@ def main():
     print("Starting QR code scanner. Press 'q' to exit...")
     
     while True:
-        # Capture frame
+        # Capture the frame
         ret, frame = cap.read()
         if not ret:
             print("Error: Failed to capture frame")
             break
         
-        # Process frame
+        # Process the frame
         result, debug_image = scanner.scan(frame)
         
-        # Display result
+        # Display the results
         cv2.imshow("QR Scanner", debug_image)
         
-        # Print result to console if we found something
+        # Print results to the console if we found something
         if result:
             print("Decoded:", result)
         
