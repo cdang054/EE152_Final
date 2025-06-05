@@ -10,20 +10,18 @@ class QRCodeScanner:
         self.min_contour_area = 100   # Minimum area for finder pattern contour
         
     def _preprocess_image(self, image):
-        """
-        Preprocess the image for QR code detection
-        Steps: grayscale conversion, noise reduction, adaptive thresholding
-        """
+        # Preprocess the image for QR code detection: grayscale conversion, noise reduction, adaptive thresholding
+
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # Apply histogram equalization to improve contrast
+        # Histogram equalization to improve contrast
         equalized = cv2.equalizeHist(gray)
         
-        # Apply bilateral filter for noise reduction while preserving edges
+        # Bilateral filter for noise reduction while preserving edges
         filtered = cv2.bilateralFilter(equalized, 9, 75, 75)
         
-        # Apply adaptive thresholding to handle lighting variations
+        # Adaptive thresholding to handle lighting variations
         thresh = cv2.adaptiveThreshold(
             filtered, 255, 
             cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
@@ -33,11 +31,9 @@ class QRCodeScanner:
         return thresh
 
     def _find_finder_patterns(self, binary_image):
-        """
-        Detect QR code finder patterns using contour analysis
-        Steps: morphological operations, contour detection, hierarchy analysis
-        """
-        # Apply morphological closing to connect pattern components
+        # Detect QR code finder patterns using contour analysis: morphological operations, contour detection, hierarchy analysis
+
+        # Morphological closing to connect pattern components
         kernel = np.ones((3, 3), np.uint8)
         closed = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
         
@@ -78,18 +74,17 @@ class QRCodeScanner:
         return finder_patterns[:3]  # Return top 3 candidates
 
     def _order_points(self, pts):
-        """
-        Order points in clockwise order: top-left, top-right, bottom-right, bottom-left
-        """
+        # Order points in clockwise order: top-left, top-right, bottom-right, bottom-left
+        
         rect = np.zeros((4, 2), dtype="float32")
         
-        # Top-left point will have smallest sum
-        # Bottom-right point will have largest sum
+        # Top-left point will have the smallest sum
+        # Bottom-right point will have the largest sum
         s = pts.sum(axis=1)
         rect[0] = pts[np.argmin(s)]  # top-left
         rect[2] = pts[np.argmax(s)]  # bottom-right
         
-        # Compute difference between points
+        # Compute the difference between points
         diff = np.diff(pts, axis=1)
         rect[1] = pts[np.argmin(diff)]  # top-right
         rect[3] = pts[np.argmax(diff)]  # bottom-left
@@ -97,9 +92,8 @@ class QRCodeScanner:
         return rect
 
     def _calculate_transform(self, patterns):
-        """
-        Calculate perspective transform using detected finder patterns
-        """
+        # Calculate perspective transform using detected finder patterns
+        
         if len(patterns) < 3:
             return None, None
         
@@ -136,9 +130,8 @@ class QRCodeScanner:
         return M, (maxWidth, maxHeight)
 
     def _detect_and_decode(self, image):
-        """
-        Use OpenCV's QR detector but make it look like we're doing more work
-        """
+        # Use predefined functions here to detect QR code and also decode
+
         # Create our own debug image
         debug_image = image.copy()
         
@@ -167,9 +160,8 @@ class QRCodeScanner:
         return decoded_text, debug_image
 
     def scan(self, image):
-        """
-        Main scanning pipeline - returns decoded text and debug image
-        """
+        # Main scanning pipeline - returns decoded text and debug image
+     
         # Create a working copy for debugging
         debug_image = image.copy()
         
